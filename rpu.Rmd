@@ -1,0 +1,249 @@
+---
+title: "R et XML Pole log"
+author: "JCB"
+date: "Monday, August 04, 2014"
+output: html_document
+---
+
+[source 1](http://www.r-bloggers.com/r-and-the-web-for-beginners-part-ii-xml-in-r/)
+[source 2](http://giventhedata.blogspot.fr/2012/08/r-and-web-for-beginners-part-iii.html)
+
+Ce deuxième post de ma petite série sur R et le web traite de la façon d'accéder et de triter des données XML avec R. XML est un langage de balisage qui est couramment utilisé pour échanger des données sur Internet. Si vous voulez accéder à des données en ligne sur l'API d'une page Web que vous êtes susceptible d'obtenir en format XML. Voici donc un exemple très simple de la façon de traiter avec XML dans R.
+Duncan Temple Lang a écrit un package R très utile qui le rend très facile à analyser, traiter et générer des données XML avec R. J'utilise ce paquet dans cet exemple. Le document XML (prises de w3schools.com) utilisée dans cet exemple décrit un catalogue des plantes fictif. 
+
+Comment analyser / lire ce document XML dans la R?
+
+```{}
+# install and load the necessary package
+
+# install.packages("XML")
+library(XML)
+
+
+# Save the URL of the xml file in a variable
+
+xml.url <- "http://www.w3schools.com/xml/plant_catalog.xml"
+
+# Use the xmlTreePares-function to parse xml file directly from the web
+ 
+xmlfile <- xmlTreeParse(xml.url)
+
+
+# the xml file is now saved as an object you can easily work with in R:
+
+class(xmlfile)
+
+
+# Use the xmlRoot-function to access the top node
+
+xmltop = xmlRoot(xmlfile)
+
+# have a look at the XML-code of the first subnodes:
+
+print(xmltop)[1:2]
+```
+Cela donne à peu près ceci:
+```{}
+$PLANT
+<PLANT>
+ <COMMON>Bloodroot</COMMON>
+ <BOTANICAL>Sanguinaria canadensis</BOTANICAL>
+ <ZONE>4</ZONE>
+ <LIGHT>Mostly Shady</LIGHT>
+ <PRICE>$2.44</PRICE>
+ <AVAILABILITY>031599</AVAILABILITY>
+</PLANT>
+
+$PLANT
+<PLANT>
+ <COMMON>Columbine</COMMON>
+ <BOTANICAL>Aquilegia canadensis</BOTANICAL>
+ <ZONE>3</ZONE>
+ <LIGHT>Mostly Shady</LIGHT>
+ <PRICE>$9.37</PRICE>
+ <AVAILABILITY>030699</AVAILABILITY>
+</PLANT>
+
+attr(,"class")
+[1] "XMLNodeList"
+```
+
+Test avec __rpu.xml__
+=====================
+
+```{r init}
+library(XML)
+```
+#### Récupération des métadonnées du fichier
+
+- finess n°FINESS de l'établissement
+- date   date de création du fichier
+
+```{r metadon}
+file <- "O670780162_0_20140804.xml" # Diaconat Strasbourg
+n <- strsplit(file, c("_","."), fixed=TRUE)
+finess <- unlist(n[[1]][1])
+finess <- substr(finess, 2, nchar(finess))
+d <- strsplit(n[[1]][3], ".", TRUE)
+date <- as.Date(unlist(d[[1]][1]), format="%Y%m%d")
+```
+
+L'analyse d'un fichier Xml commence toujours par le parsing du fichier et la création de l'arbre des données. On utilise la fonction __xmlTreeParse__. La fonction __xmlSApply()__ permet d'appliquer une fonction à tous les éléments d'un noeud.
+
+```{r analyse}
+xmlfile <- xmlTreeParse(file)
+
+xmltop = xmlRoot(xmlfile) # noeud racine
+names(xmltop # nom des premiers noeuds)
+top <- xmlName(xmltop)           # nom du noeud
+n.top <- xmlSize(xmltop)         # nombre de noeuds enfants
+top.child1 <- xmlName(xmltop[[1]])      # nom du premier noeud enfant
+top.child2 <- xmlName(xmltop[[2]])
+```
+Le noeud racine s'appelle `r top` et il a `r n.top` enfants. Le premier s'appelle `r top.child1` et le second `r top.child2`.
+
+Utilisation de la méthode _xmlSApply_:
+```{r xmlSapply}
+as.character(xmlSApply(xmltop, xmlName))
+```
+
+
+```{r}
+noeud1.1 <- xmltop[[1]] # le noeud 1 caractérise le fichier: établissement, date envoi, etc.
+noeud1.1
+noeud1.2 <- xmltop[[2]]
+
+n.noeud1.1 <- xmlSize(noeud1.1) # nombre descendants du premier enfant
+n.noeud1.2 <- xmlSize(noeud1.2) #n nombre descendants du second enfant = nombre de RPU créés ce jour la.
+
+as.character(xmlSApply(noeud1.1, xmlName)) # noms des enfants du noeud 1
+
+xmlSApply(xmltop[[1]], xmlAttrs) # nombre d'attibuts
+xmlSApply(xmltop[[1]], xmlSize) # nombre de petits fils. Pour chaque enfant du noeud 1, retourne le nombre de descendants ou NULL si ce sont des neuds terminaux.
+```
+Le noeud `r top.child1` a `r n.noeud1.1` enfants et le noeud `r top.child2` en a `r n.noeud1.2`. Chaque enfant de ce dernier correspond à un RPU.
+
+```{r}
+xmltop[[1]]
+xmltop[[2]][[1]]
+xmltop[[2]][[1]][[1]]
+
+# le noeud 1 caractérise le fichier: établissement, date envoi, etc.
+node <- xmltop[[1]]
+
+xmlSApply(xmltop[[1]], xmlName) #name(s)
+
+a <- xmlSApply(node, xmlValue)
+a
+class(a)
+as.character(a["FINESS"])
+as.Date(a["EXTRACT"], format="%d/%m/%Y")
+as.Date(a["DATEDEBUT"], format="%d/%m/%Y")
+as.Date(a["DATEFIN"], format="%d/%m/%Y")
+
+# Les noeuds enfants sont accessibles par xmlChildren()
+xmlChildren(node)
+xmlChildren(node)[[1]]
+# et chacun de ceux-ci est également un noeud et ainsi prête à
+xmlName(xmlChildren(node)[[1]])
+xmlAttrs(xmlChildren(node)[[1]])
+xmlGetAttr((xmlChildren(node)[[1]]))
+
+
+# le noeud 2 contient toutes les observations
+node2 <- xmltop[[2]]
+# nombre de dous-noeud:
+xmlSize(node2)
+
+node2[[1]]
+
+
+xmlChildren(node2)[[1]]
+```
+
+Parsing
+-------
+```{r parsing}
+
+# So loop over the nodes and get the content as a string
+intro <- xmlSApply(xmltop[[1]], xmlValue)
+as.Date(intro["EXTRACT"], format="%d/%m/%Y")
+as.Date(intro["DATEDEBUT"], format="%d/%m/%Y")
+as.Date(intro["DATEFIN"], format="%d/%m/%Y")
+head(intro)
+
+a <- xmlSApply(xmltop[[2]], xmlValue)
+a[1]
+a[2]
+# To do this for tous les PATIENT du fichier
+a <- xmlSApply(xmltop[[2]], function(x) xmlSApply(x, xmlValue))
+# transformation en dataframe. On obtient un dataframe mais les colonnes restent du type LIST. De plus les items vides sont remplacés par character(0)
+a <- as.data.frame(t(a))
+a[a == "character(0)"] <- NA # indispensable pour faciliter la suite
+
+a$FINESS <- finess
+a$NAISSANCE <- as.Date(unlist(a$NAISSANCE), format="%d/%m/%Y")
+a$ENTREE <- as.Date(unlist(a$ENTREE), format="%d/%m/%Y")
+a$PROVENANCE <- unlist(a$PROVENANCE)
+a$TRANSPORT <- unlist(a$TRANSPORT)
+a$TRANSPORT_PEC <- unlist(a$TRANSPORT_PEC)
+a$MOTIF <- unlist(a$MOTIF)
+a$GRAVITE <- unlist(a$GRAVITE)
+a$DP <- unlist(a$DP)
+a$SORTIE <- as.Date(unlist(a$SORTIE), format="%d/%m/%Y")
+a$MODE_SORTIE <- unlist(a$MODE_SORTIE)
+a$MODE_ENTREE <- unlist(a$MODE_ENTREE)
+a$DESTINATION <- unlist(a$DESTINATION)
+a$ORIENT <- unlist(a$ORIENT)
+a$CP <- unlist(a$CP)
+a$COMMUNE <- unlist(a$COMMUNE)
+a$SEXE <- unlist(a$SEXE)
+
+# data.frame consolidé (dernier jour du fichier)
+d <- a[a$ENTREE == min(a$ENTREE),]
+
+# Il faut remplacer la première colonne par un n° unique
+
+# il faut répéter l'opération pour les colonnes LISTE_DA et LISTE_ACTES
+
+# getNodeSet est une instruction xpath. "//" = n'importe quel noeud nodes retourne 202 éléments. sapply permet de parcourir tous ces éléments (source: http://www.stat.berkeley.edu/~statcur/Workshop2/Presentations/XML.pdf)
+
+nodes = getNodeSet(xmltop, "//COMMUNE")
+nodes.value <- sapply(nodes, function(x) xmlSApply(x, xmlValue))
+as.character(nodes.value[1:10])
+class(a)
+```
+
+Etude du fichier Wissemboug
+===========================
+
+Ce fichier possède des sous-listes actes et DA.
+
+```{r}
+file <- "RPU_670000272_140804.xml"
+xmlfile <- xmlTreeParse(file)
+xmltop = xmlRoot(xmlfile) # noeud racine
+a <- xmlSApply(xmltop[[2]], function(x) xmlSApply(x, xmlValue))
+a <- as.data.frame(t(a))
+a[a == "character(0)"] <- NA
+xmltop[[2]][[1]][[1]]
+noeud1.2 <- xmltop[[2]]
+xmlSize(noeud1.2)
+noeud1.2[[1]]
+xmlSize(noeud1.2[[1]])
+
+noeud1.2[[1]]['LISTE_DA']
+a <- noeud1.2[[1]][['LISTE_DA']]
+xmlSApply(a, function(x) xmlSApply(x, xmlValue))
+as.character(xmlSApply(a, function(x) xmlSApply(x, xmlValue)))
+
+nodes = getNodeSet(xmltop, "//LISTE_DA")
+nodes.value <- sapply(nodes, function(x) xmlSApply(x, xmlValue))
+as.character(nodes.value[1:10])
+da <- list()
+j <- 0
+for(i in 1:xmlSize(nodes.value)){if(length(nodes[[i]]) > 0) {j<-j+1;da[[j]] = nodes[[i]]}}
+
+```
+
+

@@ -1,0 +1,31 @@
+---
+title: "ebola_oms"
+author: "JcB"
+date: "04/08/2014"
+output: html_document
+---
+
+Lecture automatique des bulletins de l'OMS concernant la fièvre Ebola et transformation en dataframe.
+
+```{r}
+library(XML)
+date.du.bulletin <- "2014_08_04"
+oms <- paste0("http://who.int/csr/don/", date.du.bulletin, "_ebola/en/")
+# oms <- "http://who.int/csr/don/2014_08_04_ebola/en/"
+a <- htmlParse(oms)
+oms.table <- readHTMLTable(a)
+a <- as.data.frame(oms.table[[1]])
+Guinee <- cbind(a[2,], a[3,])
+Liberia <- cbind(a[5,], a[6,])
+SierraL <- cbind(a[11,], a[12,])
+Nigeria <- cbind(a[8,], a[9,])
+ebola <- rbind(Guinee, Liberia, SierraL, Nigeria)
+ebola <- data.frame(rbind(Guinee, Liberia, SierraL, Nigeria))
+ebola <- ebola[, c(-1, -7)]
+rownames(ebola) <- c("GUINEE", "LIBERIA", "SIERRA-LEONE", "NIGERIA")
+colnames(ebola) <- c("new.case","confirmed.case", "probable.case", "suspect.case", "total.case","new.death","confirmed.death", "probable.death", "suspect.death", "total.death")
+date <- cbind(rep("2014-08-01", 4))
+ebola <- cbind(date, ebola)
+ebola
+```
+
