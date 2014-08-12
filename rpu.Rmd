@@ -5,6 +5,24 @@ date: "Monday, August 04, 2014"
 output: html_document
 ---
 
+Parsing des RPU en XML avec PHP
+===============================
+
+La procédure R ne fonctionnant pas de façon satisfaisante, j'ai réactivé le parser XML en PHP, écrit en 2006. Il fonctionne bien!
+
+source: __Dossier personnel/html/XML parser/parser.php__. Pour foctionner il doit obligatoirement être accompagné de __stack.php__.
+
+Organisation générale: trois dossiers sont créés pour recevoir les différents fichiers:
+- __DEPOT__ reçoit les fichiers XML bruts provenant de l'ATIH. Une fois traités par le parser, ils seront déplacés dans le fichier ARCHIVES.
+- __ARCHIVES__ reçoit les fichiers XML une fois que leur traitement par le parser est terminé.
+- __FICHIERS_CSV__ reçoit les fichiers CSV résultant du traitement. Ces fichiers sont directement exploitables par R sous forme de dataframe. Le nom du fichier est conservé, il n'y a que l'extension qui chahge passant de _xml_ à _csv_. Le fichier .csv comporte 3 colonnes supplémentaires, en plus des items du RPU:
+        - un n° d'ordre (id) attribué par le parser pour faire le lien avec les DA et les Actes associés.
+        - le nombde de DA (0 à n)
+        - le nombre d'actes (o à n)
+
+Parsing avec R
+==============
+
 [source 1](http://www.r-bloggers.com/r-and-the-web-for-beginners-part-ii-xml-in-r/)
 [source 2](http://giventhedata.blogspot.fr/2012/08/r-and-web-for-beginners-part-iii.html)
 
@@ -94,7 +112,7 @@ L'analyse d'un fichier Xml commence toujours par le parsing du fichier et la cr�
 xmlfile <- xmlTreeParse(file)
 
 xmltop = xmlRoot(xmlfile) # noeud racine
-names(xmltop # nom des premiers noeuds)
+names(xmltop) # nom des premiers noeuds)
 top <- xmlName(xmltop)           # nom du noeud
 n.top <- xmlSize(xmltop)         # nombre de noeuds enfants
 top.child1 <- xmlName(xmltop[[1]])      # nom du premier noeud enfant
