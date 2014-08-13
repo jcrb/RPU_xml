@@ -19,6 +19,35 @@ Organisation générale: trois dossiers sont créés pour recevoir les différen
         - un n° d'ordre (id) attribué par le parser pour faire le lien avec les DA et les Actes associés.
         - le nombde de DA (0 à n)
         - le nombre d'actes (o à n)
+        
+ bilan au 12/08/2014
+ -------------------
+ Le parser PHP fonctionne. Les fichiers XML sont à déposer dans le dossier DEPOT. Puis lancer __parser.php__. Les fivhiers CSV correspondant se trouvent dans __FICHIERS_CSV__. Les fichiers XML originaux sont transféré dans le dossier __ARCHIVES__. Le dossier _DEPOT_ est automatiquement vidé. La routine qui suit lit la totalité des fichiers présents dans __FICHIERS_CSV/RPU_CSV__ (RPU principal) et retourne le dataframe correspondant.
+ 
+PB: il ne faut retenir que les jours consolidés. Qui doit le faire: PHP ou R ?
+ 
+```{}
+path <- "~/html/XML Parser/FICHIERS_CSV/RPU_CSV"
+
+read.rpu <- function(path){
+  f <- list.files(path) # vecteur des noms de fichiers
+  for(i in 1:length(f)){
+        file <- paste(path, f[i], sep="/")
+        # ecoding latin1 notemment pour les motifs de Colmar
+        d<-read.table(file, header=TRUE, sep="\t", quote = "", encoding="latin1")
+    if(i==1)
+      data<-d
+    else
+      data<-rbind(data,d)
+  }
+  
+  # colnames(data)<-c("date","finess","service","inf1an","entre1_75ans","sup75ans","total","hospitalises","UHCD","tranferts")
+  # data$date<-as.Date(data$date,format="%d/%m/%Y")
+  
+  return(data)
+}
+
+```
 
 Parsing avec R
 ==============
