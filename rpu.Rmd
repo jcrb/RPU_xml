@@ -35,6 +35,8 @@ read.rpu <- function(path){
         file <- paste(path, f[i], sep="/")
         # ecoding latin1 notemment pour les motifs de Colmar
         d<-read.table(file, header=TRUE, sep="\t", quote = "", encoding="latin1")
+        # on ne retient que les jours consolidés cad correspondant à min(as.Date(d$entree, format="%d/%m/%Y"))
+        d <- d[as.Date(d$ENTREE, format="%d/%m/%Y") == min(as.Date(d$ENTREE, format="%d/%m/%Y")),]
     if(i==1)
       data<-d
     else
@@ -47,7 +49,53 @@ read.rpu <- function(path){
   return(data)
 }
 
+d <- read.rpu(path)
+
+# transformations
+
+library("lubridate")
+# finess to hopital
+
+# date de naissance JJ/MM/AAAA -> AAAA-MM-JJ
+d$NAISSANCE <- as.Date(d$NAISSANCE, format="%d/%m/%Y")
+# age: création d'une nouvelle colonne
+d$AGE <- 2014 - year(d$NAISSANCE)
+# date d'entrée et de sortie
+d$ENTREE <- dmy_hm(d$ENTREE)
+d$SORTIE <- dmy_hm(d$SORTIE)
+d$EXTRACT <- dmy_hm(d$EXTRACT)
+# Mode d'entrée
+d$MODE_ENTREE<-factor(d$MODE_ENTREE,levels=c(6,7,8),labels=c('Mutation','Transfert','Domicile'))
+# Provenance
+d$PROVENANCE<-factor(d$PROVENANCE,levels=c(1,2,3,4,5,8),labels=c('MCO','SSR','SLD','PSY','PEA','PEO'))
+# Transport
+d$TRANSPORT<-as.factor(d$TRANSPORT)
+# Prise en charge pendant le transport
+d$TRANSPORT_PEC<-as.factor(d$TRANSPORT_PEC)
+# motif
+
+# Gravité
+d$GRAVITE<-as.factor(d$GRAVITE)
+# DP (diagnostic principal)
+
+# mode de sortie
+d$MODE_SORTIE<-factor(d$MODE_SORTIE,levels=c(6,7,8,4),labels=c('Mutation','Transfert','Domicile','Décès'))
+# Orientation
+d$ORIENTATION<-as.factor(d$ORIENTATION)
+# Destination
+d$DESTINATION<-factor(d$DESTINATION,levels=c(1,2,3,4,6,7),labels=c('MCO','SSR','SLD','PSY','HAD','HMS'))
+
+
+# Analyse Diaconat Strasbourg
+d$FINESS[d$FINESS=="670780162"]<-"DST" # DST
+dst$MOTIF <- factor(dst$MOTIF)
+dst$DP <- factor(d$DP)
+table(dst$MOTIF, dst$DP)
+
+
 ```
+[CIM10](http://www.aideaucodage.fr/cim)
+
 
 Parsing avec R
 ==============
