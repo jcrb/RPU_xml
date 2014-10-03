@@ -22,68 +22,44 @@ Organisation générale: trois dossiers sont créés pour recevoir les différen
         
  bilan au 12/08/2014
  -------------------
- Le parser PHP fonctionne. Les fichiers XML sont à déposer dans le dossier DEPOT. Puis lancer __parser.php__. Les fivhiers CSV correspondant se trouvent dans __FICHIERS_CSV__. Les fichiers XML originaux sont transféré dans le dossier __ARCHIVES__. Le dossier _DEPOT_ est automatiquement vidé. La routine qui suit lit la totalité des fichiers présents dans __FICHIERS_CSV/RPU_CSV__ (RPU principal) et retourne le dataframe correspondant.
+ Le parser PHP fonctionne. Les fichiers XML sont à déposer dans le dossier DEPOT. Puis lancer __parser.php__. Les fichiers CSV correspondant se trouvent dans __FICHIERS_CSV__. Les fichiers XML originaux sont transféré dans le dossier __ARCHIVES__. Le dossier _DEPOT_ est automatiquement vidé. La routine qui suit lit la totalité des fichiers présents dans __FICHIERS_CSV/RPU_CSV__ (RPU principal) et retourne le dataframe correspondant.
  
 PB: il ne faut retenir que les jours consolidés. Qui doit le faire: PHP ou R ?
+
+Test fichier HUS le 2/10/2014
+-----------------------------
+
+- Le fichier source _RPU_670780055_141002_Hus.xml_ est stocké dans _Fichiers de test_. 
+- faire une copie du fichier et la coller dans _DEPOT_
+- Ouvrir un nouvel onglet dans firefox et ouvrir _localhost_ pour lancer _http://localhost/XML%20Parser/parser.php_
+- le fichier est parsé et le résultat est stocké dans _/home/jcb/html/XML Parser/FICHIERS_CSV/RPU_CSV/RPU_670780055_141002_Hus.csv_
+
+# fonction read_fichier_rpu
+#
+# lit la totalité d'un fichier .csv
+
+file <- "RPU_670780055_141002_Hus.csv"
+path <- "~/html/XML Parser/FICHIERS_CSV/RPU_CSV"
+f <- paste0(path,"/",file)
+
+read_fichier_rpu <- function(file_name){
+        d<-read.table(file_name, header=TRUE, sep="\t", quote = "", encoding="latin1")
+        return (d)
+}
+
+d <-read_fichier_rpu(f)
  
 ```{}
-path <- "~/html/XML Parser/FICHIERS_CSV/RPU_CSV"
 
-read.rpu <- function(path){
-  f <- list.files(path) # vecteur des noms de fichiers
-  for(i in 1:length(f)){
-        file <- paste(path, f[i], sep="/")
-        # ecoding latin1 notemment pour les motifs de Colmar
-        d<-read.table(file, header=TRUE, sep="\t", quote = "", encoding="latin1")
-        # on ne retient que les jours consolidés cad correspondant à min(as.Date(d$entree, format="%d/%m/%Y"))
-        d <- d[as.Date(d$ENTREE, format="%d/%m/%Y") == min(as.Date(d$ENTREE, format="%d/%m/%Y")),]
-    if(i==1)
-      data<-d
-    else
-      data<-rbind(data,d)
-  }
-  
-  # colnames(data)<-c("date","finess","service","inf1an","entre1_75ans","sup75ans","total","hospitalises","UHCD","tranferts")
-  # data$date<-as.Date(data$date,format="%d/%m/%Y")
-  
-  return(data)
-}
+source("rpu_xml.R")
+
+path <- "~/html/XML Parser/FICHIERS_CSV/RPU_CSV"
 
 d <- read.rpu(path)
 
 # transformations
+d <- formate_fichier_rpu(d)
 
-library("lubridate")
-# finess to hopital
-
-# date de naissance JJ/MM/AAAA -> AAAA-MM-JJ
-d$NAISSANCE <- as.Date(d$NAISSANCE, format="%d/%m/%Y")
-# age: création d'une nouvelle colonne
-d$AGE <- 2014 - year(d$NAISSANCE)
-# date d'entrée et de sortie
-d$ENTREE <- dmy_hm(d$ENTREE)
-d$SORTIE <- dmy_hm(d$SORTIE)
-d$EXTRACT <- dmy_hm(d$EXTRACT)
-# Mode d'entrée
-d$MODE_ENTREE<-factor(d$MODE_ENTREE,levels=c(6,7,8),labels=c('Mutation','Transfert','Domicile'))
-# Provenance
-d$PROVENANCE<-factor(d$PROVENANCE,levels=c(1,2,3,4,5,8),labels=c('MCO','SSR','SLD','PSY','PEA','PEO'))
-# Transport
-d$TRANSPORT<-as.factor(d$TRANSPORT)
-# Prise en charge pendant le transport
-d$TRANSPORT_PEC<-as.factor(d$TRANSPORT_PEC)
-# motif
-
-# Gravité
-d$GRAVITE<-as.factor(d$GRAVITE)
-# DP (diagnostic principal)
-
-# mode de sortie
-d$MODE_SORTIE<-factor(d$MODE_SORTIE,levels=c(6,7,8,4),labels=c('Mutation','Transfert','Domicile','Décès'))
-# Orientation
-d$ORIENTATION<-as.factor(d$ORIENTATION)
-# Destination
-d$DESTINATION<-factor(d$DESTINATION,levels=c(1,2,3,4,6,7),labels=c('MCO','SSR','SLD','PSY','HAD','HMS'))
 
 
 # Analyse Diaconat Strasbourg
@@ -96,9 +72,47 @@ table(dst$MOTIF, dst$DP)
 ```
 [CIM10](http://www.aideaucodage.fr/cim)
 
+Analyse du fichier HUS
+----------------------
 
-Parsing avec R
-==============
+```{r hus}
+
+source("rpu_xml.R")
+file <- "RPU_670780055_141002_Hus.csv"
+f <- paste0(path,"/",file)
+d<-read.table(f, header=TRUE, sep="\t", quote = "", encoding="latin1")
+d <- formate_fichier_rpu(d)
+
+nrow(d)
+
+mineur <- d$AGE[d$AGE < 18]
+min(d$ENTREE)
+max(d$ENTREE)
+
+summary(d$MODE_ENTREE)
+summary(d$PROVENANCE)
+summary(d$TRANSPORT)
+summary(d$TRANSPORT_PEC)
+summary(d$GRAVITE)
+mean(is.na(d$GRAVITE))
+summary(d$MODE_SORTIE)
+mean(is.na(d$MODE_SORTIE))
+summary(d$ORIENTATION)
+summary(d$DESTINATION)
+summary(d$AGE)
+hist(d$AGE)
+tapply(as.Date(d$ENTREE), as.Date(d$ENTREE), length)
+t <- tapply(as.Date(d$ENTREE), as.Date(d$ENTREE), length)
+summary(t)
+summary(d$SEJOUR)
+hist(d$SEJOUR)
+
+```
+
+
+
+Parsing avec rXML
+=================
 
 [source 1](http://www.r-bloggers.com/r-and-the-web-for-beginners-part-ii-xml-in-r/)
 [source 2](http://giventhedata.blogspot.fr/2012/08/r-and-web-for-beginners-part-iii.html)

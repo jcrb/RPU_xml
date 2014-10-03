@@ -1,0 +1,48 @@
+---
+title: "Analyse fichier HUS"
+author: "JcB"
+date: "03/10/2014"
+output: html_document
+---
+
+Analyse du fichier HUS
+----------------------
+
+```{r hus}
+
+source("rpu_xml.R")
+file <- "RPU_670780055_141002_Hus.csv"
+f <- paste0(path,"/",file)
+d<-read.table(f, header=TRUE, sep="\t", quote = "", encoding="latin1")
+d <- formate_fichier_rpu(d)
+
+N <- nrow(d)
+
+mineur <- d$AGE[d$AGE < 18]
+debut <- min(d$ENTREE)
+fin <- max(d$ENTREE)
+
+summary(d$MODE_ENTREE)
+summary(d$PROVENANCE)
+summary(d$TRANSPORT)
+summary(d$TRANSPORT_PEC)
+summary(d$GRAVITE)
+mean(is.na(d$GRAVITE))
+summary(d$MODE_SORTIE)
+mean(is.na(d$MODE_SORTIE))
+summary(d$ORIENTATION)
+summary(d$DESTINATION)
+summary(d$AGE)
+hist(d$AGE)
+
+# nb de jours
+t <- tapply(as.Date(d$ENTREE), as.Date(d$ENTREE), length)
+sjours <- summary(t)
+
+# durée de séjours
+summary(d$SEJOUR)
+hist(d$SEJOUR)
+
+```
+
+Le fichier _`r file`_ comporte __`r N`__ RPU crées entre le _`r debut`_ et le _`r fin`_ soit __`r length(t)`__ jours. Le nombre moyen de RPU créé est de `r sjours["Mean"]` par jour (médiane `r sjours["Median"]` ).
