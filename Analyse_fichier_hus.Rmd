@@ -8,7 +8,7 @@ output: html_document
 Analyse du fichier HUS
 ----------------------
 
-```{r hus}
+```{r hus, echo=FALSE}
 
 source("rpu_xml.R")
 file <- "RPU_670780055_141002_Hus.csv"
@@ -22,27 +22,86 @@ mineur <- d$AGE[d$AGE < 18]
 debut <- min(d$ENTREE)
 fin <- max(d$ENTREE)
 
-summary(d$MODE_ENTREE)
-summary(d$PROVENANCE)
-summary(d$TRANSPORT)
-summary(d$TRANSPORT_PEC)
-summary(d$GRAVITE)
-mean(is.na(d$GRAVITE))
-summary(d$MODE_SORTIE)
-mean(is.na(d$MODE_SORTIE))
-summary(d$ORIENTATION)
-summary(d$DESTINATION)
-summary(d$AGE)
-hist(d$AGE)
-
 # nb de jours
 t <- tapply(as.Date(d$ENTREE), as.Date(d$ENTREE), length)
 sjours <- summary(t)
 
-# durée de séjours
-summary(d$SEJOUR)
-hist(d$SEJOUR)
 
 ```
 
 Le fichier _`r file`_ comporte __`r N`__ RPU crées entre le _`r debut`_ et le _`r fin`_ soit __`r length(t)`__ jours. Le nombre moyen de RPU créé est de `r sjours["Mean"]` par jour (médiane `r sjours["Median"]` ).
+
+Aspect quantitatif
+------------------
+
+L'exhaustivité quantitative du fichier est excellente et sans comparaison avec les RPU habituellement transmis. Le nombre de RPU est del'ordre de 300 par jour (et par extrapolation 110.000/an) ce qui correspond à la réalité. Les heures d'entrée et de sortie sont tout à fait cohérentes ce qui donne des durées de séjour très comparables a celles des autres établissement. La mise en place du FINESS géographique permettra de séparer l'activité du NHC et de HTP. Pour HTP, l'age permet de distinguer le SU adulte du SU pédiatrique.
+
+Le nombre de patients mineurs est de `r length(mineur)` (`r round(length(mineur)*100/N, 2)` %)
+
+##### durée de séjour (heures):
+
+```{r sejour, echo=FALSE}
+# durée de séjours
+s_sejour <- summary(d$SEJOUR)
+s_sejour
+hist(d$SEJOUR, main="Durée de présence au SU-HUS (en heures)", ylab="Fréquence", xlab="Heures", col="gray", border="white")
+abline(v = s_sejour["Mean"], col="red")
+
+```
+
+Aspect qualitatif
+-----------------
+
+#### Taux de complétude
+
+Taux de renseignement des différents items du RPU (en % de données manquantes):
+```{r completude, echo=FALSE}
+# taux de complétude
+a<-apply(is.na(d),2,mean)
+round(a*100,2)
+```
+Items calculés: AGE, SEJOUR (différence SORTIE-ENTREE)
+
+L'exhaustivité est de l'ordre de 100% pour la plupart des items "administratifs" (sexe, date de naissance, zip, commune, etc.) sauf pour MODE_SORTIE qui enregistre comment le patient est sorti du service (retour à domicile, hospitalisation, transfert, décès). Dans `r round(100 * mean(is.na(d$MODE_SORTIE)), 0)` % des cas on ne sait pas ce qu'est devenu le patient. Sans cet item, les champs ORIENTATION et DESTINATION ne peuvent être calculés correctement.
+
+#### mode de sortie:
+
+```{r mode_sortie, echo=FALSE}
+summary(d$MODE_SORTIE)
+summary(d$ORIENTATION)
+summary(d$DESTINATION)
+```
+
+#### Mode d'entrée et Provenance
+
+```{r}
+summary(d$MODE_ENTREE)
+mean(is.na(d$MODE_ENTREE))
+
+summary(d$PROVENANCE)
+mean(is.na(d$PROVENANCE))
+```
+
+#### Transport et prise en charge durant le transport
+```{r}
+summary(d$TRANSPORT)
+summary(d$TRANSPORT_PEC)
+```
+
+#### Gravité
+```{r}
+summary(d$GRAVITE)
+mean(is.na(d$GRAVITE))
+```
+
+```{r}
+summary(d$AGE)
+hist(d$AGE, main="Histogramme des ages", xlab="Age (en années révolues)", ylab="fréquence", col="gray", border="white")
+```
+
+
+
+
+
+summary(d$MOTIF)
+
