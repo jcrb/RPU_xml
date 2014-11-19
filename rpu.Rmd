@@ -117,7 +117,7 @@ Parsing avec rXML
 [source 1](http://www.r-bloggers.com/r-and-the-web-for-beginners-part-ii-xml-in-r/)
 [source 2](http://giventhedata.blogspot.fr/2012/08/r-and-web-for-beginners-part-iii.html)
 
-Ce deuxième post de ma petite série sur R et le web traite de la façon d'accéder et de triter des données XML avec R. XML est un langage de balisage qui est couramment utilisé pour échanger des données sur Internet. Si vous voulez accéder à des données en ligne sur l'API d'une page Web que vous êtes susceptible d'obtenir en format XML. Voici donc un exemple très simple de la façon de traiter avec XML dans R.
+Ce deuxième post de ma petite série sur R et le web traite de la façon d'accéder et de traiter des données XML avec R. XML est un langage de balisage qui est couramment utilisé pour échanger des données sur Internet. Si vous voulez accéder à des données en ligne sur l'API d'une page Web que vous êtes susceptible d'obtenir en format XML. Voici donc un exemple très simple de la façon de traiter avec XML dans R.
 Duncan Temple Lang a écrit un package R très utile qui le rend très facile à analyser, traiter et générer des données XML avec R. J'utilise ce paquet dans cet exemple. Le document XML (prises de w3schools.com) utilisée dans cet exemple décrit un catalogue des plantes fictif. 
 
 Comment analyser / lire ce document XML dans la R?
@@ -352,7 +352,34 @@ as.character(nodes.value[1:10])
 da <- list()
 j <- 0
 for(i in 1:xmlSize(nodes.value)){if(length(nodes[[i]]) > 0) {j<-j+1;da[[j]] = nodes[[i]]}}
-
 ```
 
+fichier 2014
+------------
+
+Fichier transmis le 19/11/2014 en raison des nombreux trous dans le fichier de Resural. Mr Hirsch envoiun fichier XML avec tous les RPU depuis le 1er janvier. Le fichier est archivé dans le dossier ARCHIVES et dupliqué dans le dossier DEPOT pour y être parsé par __parser.php__. Les fichiers résultants se trouvent dans le dossier FICHIERS_CSV. Le fichier principal se trouve dans RPU_CSV/RPU_670000272_141119.csv
+
+```{r}
+file <- "RPU_670000272_141119.csv"
+path <- "~/html/XML Parser/FICHIERS_CSV/RPU_CSV"
+f <- paste0(path,"/",file)
+
+read_fichier_rpu <- function(file_name){
+        d<-read.table(file_name, header=TRUE, sep="\t", quote = "", encoding="latin1")
+        return (d)
+}
+
+d <-read_fichier_rpu(f)
+summary(d)
+min(as.Date(d$ENTREE, format="%d/%m/%Y"))
+max(as.Date(d$ENTREE, format="%d/%m/%Y"))
+
+# conversion des dates
+d$ENTREE <- strptime(as.character(d$ENTREE), format="%d/%m/%Y %H:%M")
+d$EXTRACT <- strptime(as.character(d$EXTRACT), format="%d/%m/%Y %H:%M")
+d$SORTIE <- strptime(as.character(d$SORTIE), format="%d/%m/%Y %H:%M")
+d$NAISSANCE <- as.Date(as.character(d$NAISSANCE), format="%d/%m/%Y")
+
+
+```
 
